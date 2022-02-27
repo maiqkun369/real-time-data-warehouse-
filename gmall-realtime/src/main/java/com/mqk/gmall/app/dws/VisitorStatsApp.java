@@ -149,7 +149,7 @@ public class VisitorStatsApp {
 							}
 						},
 						/**
-						 * 全聚合，对整个窗口内的数据进行计算，例如TOPN等
+						 * 全窗口聚合，对整个窗口内的数据进行计算，例如TOPN等
 						 */
 						new WindowFunction<VisitorStats, VisitorStats, Tuple4<String, String, String, String>, TimeWindow>() {
 							@Override

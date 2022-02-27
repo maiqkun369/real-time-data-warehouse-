@@ -15,6 +15,17 @@ public class MyKafkaUtil {
 	private static final String brokers = "hadoop102:9092,hadoop103:9092,hadoop104:9092";
 	private static final String default_topic = "DWD_DEFAULT_TOPIC";
 
+	//拼接 Kafka 相关属性到 DDL
+	public static String getKafkaDDL(String topic,String groupId){
+		String ddl="'connector' = 'kafka', " +
+				" 'topic' = '"+topic+"'," +
+				" 'properties.bootstrap.servers' = '"+ brokers +"', " +
+				" 'properties.group.id' = '"+groupId+ "', " +
+				" 'format' = 'json', " +
+				" 'scan.startup.mode' = 'latest-offset' ";
+		return ddl;
+	}
+
 	public static FlinkKafkaProducer<String> getKafkaProducer(String topic){
 		return new FlinkKafkaProducer<>(
 				brokers,

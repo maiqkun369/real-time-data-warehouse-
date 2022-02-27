@@ -82,7 +82,6 @@ public class OrderWideApp {
 
 
 		// TODO: 2022/1/18 双流join intervalJoin相当于主流left join 辅流
-
 		final SingleOutputStreamOperator<OrderWide> orderWideWithNoDimDS = orderInfoDS
 				.keyBy(OrderInfo::getId)
 				.intervalJoin(orderDetailDS.keyBy(OrderDetail::getOrder_id))
