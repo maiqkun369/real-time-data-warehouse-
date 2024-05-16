@@ -13,6 +13,9 @@ import com.mqk.gmall.app.ods.function.FlinkCDC_DeserializationSchema;
 import com.mqk.gmall.bean.TableProcess;
 import com.mqk.gmall.utils.MyKafkaUtil;
 import org.apache.flink.api.common.state.MapStateDescriptor;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.TypeHint;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.*;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
@@ -32,10 +35,10 @@ public class BaseDBApp {
 	public static void main(String[] args) throws Exception {
 		final StreamExecutionEnvironment environment = BaseEnviroment.getEnvironment();
 
-		// TODO: 2022/1/13 消费kafka ods_base_db主题数据创建流
+		//   消费kafka ods_base_db主题数据创建流
 		final DataStreamSource<String> kafkaDS = environment.addSource(MyKafkaUtil.getKafkaConsumer("ods_base_db", "base_db_app"));
 
-		// TODO: 2022/1/13 将每行数据转换为JSON对象并过滤(delete)  -> 主流
+		//  将每行数据转换为JSON对象并过滤(delete)  -> 主流
 		final SingleOutputStreamOperator<JSONObject> jsonObjDS = kafkaDS
 				.map(JSON::parseObject)
 				.filter(
@@ -45,7 +48,7 @@ public class BaseDBApp {
 						}
 				);
 
-		// TODO: 2022/1/13 使用cdc消费配置表 -> 广播流
+		//  使用cdc消费配置表 -> 广播流 todo
 		final DebeziumSourceFunction<String> sourceFunction = MySQLSource
 				.<String>builder()
 				.hostname("hadoop102")
@@ -58,27 +61,31 @@ public class BaseDBApp {
 				.deserializer(new FlinkCDC_DeserializationSchema())// 自定义反序列化器
 				.build();
 
-
-
 		final DataStreamSource<String> tableProcessDs = environment.addSource(sourceFunction);
-		//形成广播流
+
+		//广播流状态算子, 定义该数据结构
+//		final MapStateDescriptor<String, TableProcess> mapStateDes =
+//				new MapStateDescriptor<>("map-state", String.class, TableProcess.class);
+
+
+
 		final MapStateDescriptor<String, TableProcess> mapStateDes =
-				new MapStateDescriptor<>("map-state", String.class, TableProcess.class);
+				new MapStateDescriptor<>("map-state",
+						BasicTypeInfo.STRING_TYPE_INFO,
+						TypeInformation.of(new TypeHint<TableProcess>() {}));
+
 
 		final BroadcastStream<String> broadcastStream = tableProcessDs.broadcast(mapStateDes);
-		// TODO: 2022/1/13 连接主流和广播流
+		//  连接主流和广播流
 		final BroadcastConnectedStream<JSONObject, String> connectStream = jsonObjDS.connect(broadcastStream);
-
-		// TODO: 2022/1/13 处理数据
+		// 处理数据
 		final SingleOutputStreamOperator<JSONObject> kafka =
 				connectStream.process(new MyBroadcastProcess(BaseLogAppConstant.hbaseOutput, mapStateDes));
-
-
-		// TODO: 2022/1/13 提取kafka流数据和Hbase流数据
+		//  提取kafka流数据和Hbase流数据
 		final DataStream<JSONObject> hbase = kafka.getSideOutput(BaseLogAppConstant.hbaseOutput);
 
 
-		// TODO: 2022/1/13 将kafka数据写入kafka主题，将hbase数据写入Phoenix表
+		// 将kafka数据写入kafka主题，将hbase数据写入Phoenix表
 		kafka.print("Kafka >>>>>>>>>>>>>>");
 		hbase.print("Hbase >>>>>>>>>>>>>>");
 
@@ -95,7 +102,7 @@ public class BaseDBApp {
 					}
 				})
 		);
-		// TODO: 2022/1/13 启动任务
+		// 启动任务
 		environment.execute("BaseDBApp");
 	}
 

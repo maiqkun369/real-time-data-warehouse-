@@ -7,6 +7,7 @@ import com.mqk.gmall.app.BaseEnviroment;
 import com.mqk.gmall.app.ods.function.FlinkCDC_DeserializationSchema;
 import com.mqk.gmall.enums.FlinkStartupOptionsEnum;
 import com.mqk.gmall.utils.MyKafkaUtil;
+import org.apache.flink.api.common.RuntimeExecutionMode;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
@@ -15,6 +16,8 @@ public class FlinkCDC {
 
 	public static void main(String[] args) throws Exception {
 		final StreamExecutionEnvironment environment = BaseEnviroment.getEnvironment();
+		//设置批处理
+//		environment.setRuntimeMode(RuntimeExecutionMode.BATCH);
 		//cdc 构建数据源
 		final DataStreamSource<String> dataStream = environment.addSource(listenMysql(FlinkStartupOptionsEnum.LATEST));
 
